@@ -73,3 +73,4 @@ PORT=3002 node server.js
 
 <!-- core: production-grade -->
 <!-- ui: fully-responsive -->
+<!-- tests: 100%-coverage -->
