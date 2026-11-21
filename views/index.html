@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NeuroScribe Studio - Knowledge Graph & Semantic Vault</title>
+  <link rel="stylesheet" href="/css/neuroscribe.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app-root">
+    <!-- Header Bar -->
+    <header class="app-header">
+      <div class="brand">
+        <button id="toggle-sidebar-btn" class="btn btn-icon mobile-only" title="Toggle Sidebar" style="display: none;">☰</button>
+        <div class="brand-icon">⚡</div>
+        <div class="brand-text">NeuroScribe <span>Studio</span></div>
+      </div>
+
+      <div class="header-center">
+        <div class="quick-search-trigger" id="quick-search-trigger">
+          <span>🔍 Quick Switcher / Search...</span>
+          <span class="kbd-shortcut">Ctrl+K</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <a href="/graph" class="btn btn-secondary" title="Immersive Knowledge Graph Explorer (Ctrl+G)">
+          <span>🕸️ Graph View</span>
+        </a>
+        <a href="/api/export" class="btn btn-secondary" title="Export Vault JSON">
+          <span>📥 Export</span>
+        </a>
+        <button id="new-note-btn" class="btn btn-primary" title="Create New Note (Ctrl+N)">
+          <span>+ New Note</span>
+        </button>
+        <button id="toggle-inspector-btn" class="btn btn-icon mobile-only" title="Toggle Inspector" style="display: none;">ℹ️</button>
+      </div>
+    </header>
+
+    <!-- Workspace 3-Pane Body -->
+    <main class="workspace-container">
+      <!-- Left Sidebar: Note Explorer -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-search-box">
+            <span class="sidebar-search-icon">🔍</span>
+            <input type="text" id="sidebar-search" placeholder="Filter notes..." autocomplete="off">
+          </div>
+          <div class="sidebar-tools">
+            <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Vault Notes</span>
+            <select id="sort-select" class="sort-select">
+              <option value="updated">Recently Updated</option>
+              <option value="title">Alphabetical (A-Z)</option>
+              <option value="words">Word Count</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Tag Filter Cloud -->
+        <div class="tag-cloud-container" id="tag-cloud">
+          <!-- Dynamic tags injected here -->
+        </div>
+
+        <!-- Notes List -->
+        <ul class="notes-list" id="notes-list">
+          <!-- Note items dynamically populated -->
+        </ul>
+
+        <!-- Sidebar Footer Stats -->
+        <div class="sidebar-footer">
+          <span id="vault-stats-label">Vault Storage Active</span>
+          <span class="kbd-shortcut">Ctrl+S Save</span>
+        </div>
+      </aside>
+
+      <!-- Center Pane: Editor & Live Preview -->
+      <section class="editor-pane">
+        <!-- Editor Toolbar -->
+        <div class="editor-toolbar">
+          <div class="editor-title-container">
+            <input type="text" id="note-title-input" class="note-title-input" placeholder="Note Title...">
+            <div class="save-status-indicator" id="save-indicator">
+              <span class="save-dot" id="save-dot"></span>
+              <span id="save-status-text">All changes saved</span>
+            </div>
+          </div>
+
+          <div class="editor-view-controls">
+            <button class="view-btn active" data-mode="split" title="Split View">Split</button>
+            <button class="view-btn" data-mode="edit" title="Markdown Source Only">Edit</button>
+            <button class="view-btn" data-mode="preview" title="Live Preview Only">Preview</button>
+          </div>
+        </div>
+
+        <!-- Markdown Formatting Bar -->
+        <div class="markdown-formatting-bar">
+          <button class="format-btn" data-action="bold" title="Bold (**text**)"><strong>B</strong></button>
+          <button class="format-btn" data-action="italic" title="Italic (*text*)"><em>I</em></button>
+          <button class="format-btn" data-action="heading" title="Heading (## Heading)">H2</button>
+          <button class="format-btn" data-action="wikilink" title="WikiLink ([[Target]])">[[Link]]</button>
+          <button class="format-btn" data-action="tag" title="Tag (#tag)">#tag</button>
+          <button class="format-btn" data-action="task" title="Task List item">- [ ]</button>
+          <button class="format-btn" data-action="code" title="Code Block">`Code`</button>
+          <button class="format-btn" data-action="math" title="Math Formula">$$Math$$</button>
+          <button class="format-btn" data-action="callout" title="Callout Box">> [!NOTE]</button>
+        </div>
+
+        <!-- Split Content Area -->
+        <div class="editor-split-body mode-split" id="editor-split-body">
+          <div class="editor-column">
+            <textarea id="raw-textarea" class="raw-textarea" placeholder="Type Markdown here... Use [[WikiLinks]] to connect thoughts and #tags for taxonomy." spellcheck="false"></textarea>
+          </div>
+          <div class="preview-column">
+            <div id="markdown-preview" class="markdown-preview">
+              <!-- Rendered HTML preview -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Pane: Inspector & Backlinks -->
+      <aside class="inspector-pane">
+        <div class="inspector-header">
+          <h3>Note Intelligence</h3>
+          <button id="delete-note-btn" class="btn btn-danger btn-icon" title="Delete Note">🗑️</button>
+        </div>
+
+        <!-- Local Mini-Graph -->
+        <div class="inspector-section">
+          <div class="inspector-section-title">
+            <span>Local Ego Network</span>
+            <span class="inspector-count">1-hop</span>
+          </div>
+          <div class="mini-graph-container">
+            <canvas id="mini-graph-canvas"></canvas>
+            <div class="mini-graph-overlay">Interactive</div>
+          </div>
+        </div>
+
+        <!-- Backlinks Section -->
+        <div class="inspector-section">
+          <div class="inspector-section-title">
+            <span>Incoming Backlinks</span>
+            <span class="inspector-count" id="backlinks-count">0</span>
+          </div>
+          <div class="link-cards-list" id="backlinks-list">
+            <!-- Backlink cards -->
+          </div>
+        </div>
+
+        <!-- Outgoing Links Section -->
+        <div class="inspector-section">
+          <div class="inspector-section-title">
+            <span>Outgoing Links</span>
+            <span class="inspector-count" id="outgoing-count">0</span>
+          </div>
+          <div class="link-cards-list" id="outgoing-list">
+            <!-- Outgoing link cards -->
+          </div>
+        </div>
+
+        <!-- Semantic Recommendations (TF-IDF Similarity) -->
+        <div class="inspector-section">
+          <div class="inspector-section-title">
+            <span>Semantic Recommendations</span>
+            <span class="inspector-count" id="recs-count">0</span>
+          </div>
+          <div class="link-cards-list" id="recommendations-list">
+            <!-- Semantic recommendation cards -->
+          </div>
+        </div>
+
+        <!-- Metadata Section -->
+        <div class="inspector-section">
+          <div class="inspector-section-title">Metadata & Taxonomy</div>
+          <div style="font-size: 0.8rem; display: flex; flex-direction: column; gap: 0.4rem; color: var(--text-secondary);">
+            <div><strong>Words:</strong> <span id="meta-word-count">0 words</span></div>
+            <div><strong>Reading Time:</strong> <span id="meta-read-time">1 min read</span></div>
+            <div><strong>Last Updated:</strong> <span id="meta-updated">-</span></div>
+            <div><strong>Tags:</strong></div>
+            <div id="meta-tags-container" style="display: flex; gap: 0.25rem; flex-wrap: wrap;"></div>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <!-- Quick Switcher Command Palette Modal (Ctrl+K) -->
+    <div class="modal-overlay" id="quick-switcher-modal">
+      <div class="quick-switcher-modal">
+        <div class="switcher-input-wrapper">
+          <span style="color: var(--accent-cyan); font-size: 1.1rem;">⚡</span>
+          <input type="text" id="switcher-search-input" class="switcher-input" placeholder="Type a note name or semantic concept..." autocomplete="off">
+        </div>
+        <ul class="switcher-results" id="switcher-results">
+          <!-- Search results populated dynamically -->
+        </ul>
+        <div class="switcher-footer">
+          <span>Navigation: <span class="kbd-shortcut">↑</span> <span class="kbd-shortcut">↓</span> to navigate, <span class="kbd-shortcut">Enter</span> to select</span>
+          <span class="kbd-shortcut">Esc to close</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toast-container"></div>
+  </div>
+
+  <script type="module" src="/js/neuro-app.js"></script>
+</body>
+</html>

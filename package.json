@@ -1,0 +1,25 @@
+{
+  "name": "neuroscribe-vault",
+  "version": "1.0.0",
+  "description": "NeuroScribe Studio - Knowledge Graph & Semantic Vault with Force-Directed Graph Engine & Markdown Vault",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "start:sqlite": "node --experimental-sqlite server.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "knowledge-graph",
+    "markdown-vault",
+    "force-directed-graph",
+    "semantic-search",
+    "wikilinks",
+    "backlinks",
+    "second-brain"
+  ],
+  "author": "Antigravity Engineering",
+  "license": "MIT"
+}

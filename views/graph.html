@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Knowledge Graph Explorer - NeuroScribe Studio</title>
+  <link rel="stylesheet" href="/css/neuroscribe.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body style="overflow: hidden;">
+  <div class="graph-explorer-root">
+    <!-- Main Interactive Canvas -->
+    <canvas id="graph-canvas"></canvas>
+
+    <!-- Top Left Navigation Bar -->
+    <div class="graph-top-nav">
+      <a href="/" class="btn btn-secondary" title="Return to Workspace">
+        <span>← Workspace</span>
+      </a>
+      <div style="background: rgba(16, 20, 31, 0.85); backdrop-filter: blur(10px); border: 1px solid var(--border-subtle); padding: 0.4rem 0.8rem; border-radius: var(--radius-sm); font-size: 0.88rem; font-weight: 600;">
+        🕸️ Knowledge Graph Navigator
+      </div>
+      <div style="position: relative;">
+        <input type="text" id="graph-search-input" placeholder="Search node..." style="background: rgba(16, 20, 31, 0.85); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: #fff; padding: 0.45rem 0.8rem; font-size: 0.85rem; width: 180px; outline: none;">
+      </div>
+    </div>
+
+    <!-- Floating Right Control Panel -->
+    <aside class="graph-floating-panel">
+      <div class="graph-panel-header">
+        <h2>Graph Controls</h2>
+        <button id="reset-view-btn" class="btn btn-secondary btn-icon" title="Reset View / Fit Screen">⛶</button>
+      </div>
+
+      <!-- Sizing Mode -->
+      <div class="graph-control-group">
+        <label>Node Sizing Metric</label>
+        <div style="display: flex; gap: 0.4rem;">
+          <button id="size-degree-btn" class="btn btn-primary" style="flex: 1; font-size: 0.75rem; padding: 0.35rem;">Degree</button>
+          <button id="size-centrality-btn" class="btn btn-secondary" style="flex: 1; font-size: 0.75rem; padding: 0.35rem;">PageRank</button>
+        </div>
+      </div>
+
+      <!-- Physics Controls -->
+      <div class="graph-control-group">
+        <label>
+          <span>Node Repulsion</span>
+          <span class="slider-value" id="repulsion-val">1200</span>
+        </label>
+        <input type="range" id="repulsion-slider" class="graph-slider" min="300" max="3000" step="50" value="1200">
+      </div>
+
+      <div class="graph-control-group">
+        <label>
+          <span>Link Distance</span>
+          <span class="slider-value" id="distance-val">95</span>
+        </label>
+        <input type="range" id="distance-slider" class="graph-slider" min="40" max="250" step="5" value="95">
+      </div>
+
+      <div class="graph-control-group">
+        <label>
+          <span>Centering Gravity</span>
+          <span class="slider-value" id="gravity-val">0.035</span>
+        </label>
+        <input type="range" id="gravity-slider" class="graph-slider" min="0.005" max="0.100" step="0.005" value="0.035">
+      </div>
+
+      <div class="graph-control-group">
+        <label>
+          <span>Damping / Friction</span>
+          <span class="slider-value" id="friction-val">0.18</span>
+        </label>
+        <input type="range" id="friction-slider" class="graph-slider" min="0.05" max="0.45" step="0.01" value="0.18">
+      </div>
+
+      <button id="reheat-btn" class="btn btn-secondary" style="width: 100%; font-size: 0.8rem;">
+        ⚡ Re-heat Simulation Physics
+      </button>
+
+      <hr style="border: none; border-top: 1px solid var(--border-subtle); margin: 0.2rem 0;">
+
+      <!-- Filtering Options -->
+      <div class="graph-control-group">
+        <label style="cursor: pointer; display: flex; align-items: center; justify-content: space-between;">
+          <span>Hide Orphan Notes</span>
+          <input type="checkbox" id="orphan-checkbox" style="accent-color: var(--accent-primary);">
+        </label>
+      </div>
+
+      <!-- Cluster Communities Legend -->
+      <div class="graph-control-group">
+        <label>Semantic Clusters</label>
+        <ul class="cluster-legend-list" id="cluster-legend-list">
+          <!-- Dynamic cluster items -->
+        </ul>
+      </div>
+    </aside>
+
+    <!-- Bottom HUD Stats -->
+    <div class="graph-hud">
+      <div class="hud-item">Nodes: <strong id="hud-nodes">0</strong></div>
+      <div class="hud-item">Edges: <strong id="hud-edges">0</strong></div>
+      <div class="hud-item">Density: <strong id="hud-density">0</strong></div>
+      <div class="hud-item">Avg Degree: <strong id="hud-avg-deg">0</strong></div>
+      <div class="hud-item">Top Hub: <strong id="hud-top-hub">-</strong></div>
+    </div>
+
+    <!-- Node Detail Drawer (Clicking any node) -->
+    <div class="node-detail-drawer" id="node-drawer">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <h3 class="drawer-title" id="drawer-title">Note Title</h3>
+        <button id="close-drawer-btn" class="btn btn-icon" style="font-size: 1.1rem; line-height: 1;">✕</button>
+      </div>
+      <div style="font-size: 0.75rem; color: var(--accent-cyan); font-weight: 600; margin-bottom: 0.5rem;" id="drawer-cluster">Cluster Name</div>
+      <div class="drawer-excerpt" id="drawer-excerpt">Excerpt goes here...</div>
+      
+      <div class="drawer-meta-pills" id="drawer-meta-pills">
+        <!-- Degree, PageRank, Word count pills -->
+      </div>
+
+      <div style="display: flex; gap: 0.5rem;">
+        <button id="drawer-open-note-btn" class="btn btn-primary" style="flex: 1;">
+          ✏️ Open in Workspace
+        </button>
+        <button id="drawer-focus-node-btn" class="btn btn-secondary">
+          🔍 Center
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { ForceGraph } from '/js/force-graph.js';
+
+    let graph = null;
+    let graphData = null;
+    let selectedNode = null;
+
+    const canvas = document.getElementById('graph-canvas');
+    const drawer = document.getElementById('node-drawer');
+    const drawerTitle = document.getElementById('drawer-title');
+    const drawerCluster = document.getElementById('drawer-cluster');
+    const drawerExcerpt = document.getElementById('drawer-excerpt');
+    const drawerMetaPills = document.getElementById('drawer-meta-pills');
+    const drawerOpenBtn = document.getElementById('drawer-open-note-btn');
+    const drawerFocusBtn = document.getElementById('drawer-focus-node-btn');
+    const closeDrawerBtn = document.getElementById('close-drawer-btn');
+
+    async function initGraphExplorer() {
+      // Initialize Force Graph instance
+      graph = new ForceGraph(canvas, {
+        repulsion: 1200,
+        linkDistance: 95,
+        gravity: 0.035,
+        friction: 0.18,
+        onNodeClick: (node) => showNodeDrawer(node)
+      });
+
+      // Load graph data from API
+      const res = await fetch('/api/graph');
+      graphData = await res.json();
+
+      if (graphData.success) {
+        graph.setData(graphData.nodes, graphData.links);
+        updateHUD(graphData.stats);
+        renderClustersLegend(graphData.clusters);
+      }
+
+      bindControls();
+    }
+
+    function updateHUD(stats) {
+      if (!stats) return;
+      document.getElementById('hud-nodes').textContent = stats.totalNodes;
+      document.getElementById('hud-edges').textContent = stats.totalLinks;
+      document.getElementById('hud-density').textContent = stats.density;
+      document.getElementById('hud-avg-deg').textContent = stats.avgDegree;
+      document.getElementById('hud-top-hub').textContent = stats.topHub ? stats.topHub.title : '-';
+    }
+
+    function renderClustersLegend(clusters = []) {
+      const list = document.getElementById('cluster-legend-list');
+      list.innerHTML = '';
+
+      clusters.forEach(c => {
+        const li = document.createElement('li');
+        li.className = 'cluster-legend-item';
+        li.innerHTML = `
+          <div class="cluster-dot-label">
+            <span class="cluster-color-dot" style="background-color: ${c.color};"></span>
+            <span>${c.name}</span>
+          </div>
+          <span style="font-family: var(--font-mono); font-size: 0.72rem; opacity: 0.7;">${c.count}</span>
+        `;
+        list.appendChild(li);
+      });
+    }
+
+    function showNodeDrawer(node) {
+      selectedNode = node;
+      drawerTitle.textContent = node.title;
+      drawerCluster.textContent = node.clusterName || 'General';
+      drawerCluster.style.color = node.color || '#6366f1';
+      drawerExcerpt.textContent = node.excerpt || 'No summary available.';
+
+      drawerMetaPills.innerHTML = `
+        <span class="tag-badge">Degree: ${node.degree || 0}</span>
+        <span class="tag-badge">PageRank: ${node.centrality || 0}</span>
+        <span class="tag-badge">${node.wordCount || 0} words</span>
+      `;
+
+      drawer.classList.add('open');
+    }
+
+    function bindControls() {
+      // Sliders
+      const repulsionSlider = document.getElementById('repulsion-slider');
+      const distanceSlider = document.getElementById('distance-slider');
+      const gravitySlider = document.getElementById('gravity-slider');
+      const frictionSlider = document.getElementById('friction-slider');
+
+      repulsionSlider.addEventListener('input', (e) => {
+        const val = Number(e.target.value);
+        document.getElementById('repulsion-val').textContent = val;
+        graph.setPhysicsParams({ repulsion: val });
+      });
+
+      distanceSlider.addEventListener('input', (e) => {
+        const val = Number(e.target.value);
+        document.getElementById('distance-val').textContent = val;
+        graph.setPhysicsParams({ linkDistance: val });
+      });
+
+      gravitySlider.addEventListener('input', (e) => {
+        const val = Number(e.target.value);
+        document.getElementById('gravity-val').textContent = val;
+        graph.setPhysicsParams({ gravity: val });
+      });
+
+      frictionSlider.addEventListener('input', (e) => {
+        const val = Number(e.target.value);
+        document.getElementById('friction-val').textContent = val;
+        graph.setPhysicsParams({ friction: val });
+      });
+
+      // Sizing Mode Buttons
+      const sizeDegreeBtn = document.getElementById('size-degree-btn');
+      const sizeCentralityBtn = document.getElementById('size-centrality-btn');
+
+      sizeDegreeBtn.addEventListener('click', () => {
+        sizeDegreeBtn.className = 'btn btn-primary';
+        sizeCentralityBtn.className = 'btn btn-secondary';
+        graph.setSizingMode('degree');
+      });
+
+      sizeCentralityBtn.addEventListener('click', () => {
+        sizeCentralityBtn.className = 'btn btn-primary';
+        sizeDegreeBtn.className = 'btn btn-secondary';
+        graph.setSizingMode('centrality');
+      });
+
+      // Search
+      const searchInput = document.getElementById('graph-search-input');
+      searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.trim();
+        graph.setFilters({ search: query });
+        if (query) {
+          const match = graph.nodes.find(n => n.title.toLowerCase().includes(query.toLowerCase()));
+          if (match) {
+            graph.focusNode(match.id);
+          }
+        }
+      });
+
+      // Orphan toggle
+      const orphanCheckbox = document.getElementById('orphan-checkbox');
+      orphanCheckbox.addEventListener('change', (e) => {
+        graph.setFilters({ hideOrphans: e.target.checked });
+      });
+
+      // Buttons
+      document.getElementById('reheat-btn').addEventListener('click', () => graph.reheat(0.8));
+      document.getElementById('reset-view-btn').addEventListener('click', () => graph.resetView());
+
+      // Drawer buttons
+      closeDrawerBtn.addEventListener('click', () => drawer.classList.remove('open'));
+      drawerFocusBtn.addEventListener('click', () => {
+        if (selectedNode) graph.focusNode(selectedNode.id);
+      });
+      drawerOpenBtn.addEventListener('click', () => {
+        if (selectedNode) window.location.href = `/#/note/${selectedNode.slug}`;
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', initGraphExplorer);
+  </script>
+</body>
+</html>
