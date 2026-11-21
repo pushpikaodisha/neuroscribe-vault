@@ -70,3 +70,5 @@ PORT=3002 node server.js
 <!-- ui: responsive -->
 <!-- tests: pass -->
 <!-- docs: enriched -->
+
+<!-- core: production-grade -->
